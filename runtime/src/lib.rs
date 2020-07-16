@@ -39,7 +39,7 @@ pub use frame_support::{
 };
 
 /// Import the template pallet.
-pub use template;
+pub use animo;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -92,8 +92,8 @@ pub mod opaque {
 }
 
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("node-template"),
-	impl_name: create_runtime_str!("node-template"),
+	spec_name: create_runtime_str!("node-animo"),
+	impl_name: create_runtime_str!("node-animo"),
 	authoring_version: 1,
 	spec_version: 1,
 	impl_version: 1,
@@ -258,7 +258,7 @@ impl sudo::Trait for Runtime {
 }
 
 /// Configure the pallet template in pallets/template.
-impl template::Trait for Runtime {
+impl animo::Trait for Runtime {
 	type Event = Event;
 }
 
@@ -278,7 +278,7 @@ construct_runtime!(
 		TransactionPayment: transaction_payment::{Module, Storage},
 		Sudo: sudo::{Module, Call, Config<T>, Storage, Event<T>},
 		// Include the custom logic from the template pallet in the runtime.
-		TemplateModule: template::{Module, Call, Storage, Event<T>},
+		AnimoModule: animo::{Module, Call, Storage, Event<T>},
 	}
 );
 

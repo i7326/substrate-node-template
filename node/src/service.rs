@@ -3,7 +3,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 use sc_client_api::{ExecutorProvider, RemoteBackend};
-use node_template_runtime::{self, Block, RuntimeApi};
+use node_animo_runtime::{self, Block, RuntimeApi};
 use sc_service::{error::Error as ServiceError, Configuration, ServiceComponents, TaskManager};
 use sp_inherents::InherentDataProviders;
 use sc_executor::native_executor_instance;
@@ -16,8 +16,8 @@ use sc_finality_grandpa::{
 // Our native executor instance.
 native_executor_instance!(
 	pub Executor,
-	node_template_runtime::api::dispatch,
-	node_template_runtime::native_version,
+	node_animo_runtime::api::dispatch,
+	node_animo_runtime::native_version,
 );
 
 type FullClient = sc_service::TFullClient<Block, RuntimeApi, Executor>;
@@ -77,7 +77,7 @@ pub fn new_full_params(config: Configuration) -> Result<(
 	let provider = client.clone() as Arc<dyn StorageAndProofProvider<_, _>>;
 	let finality_proof_provider =
 		Arc::new(GrandpaFinalityProofProvider::new(backend.clone(), provider));
-	
+
 	let params = sc_service::ServiceParams {
 		backend, client, import_queue, keystore, task_manager, transaction_pool,
 		config,
@@ -96,7 +96,7 @@ pub fn new_full_params(config: Configuration) -> Result<(
 }
 
 /// Builds a new service for a full client.
-pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {	
+pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 	let (
 		params, select_chain, inherent_data_providers,
 		block_import, grandpa_link,
@@ -210,7 +210,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 pub fn new_light(config: Configuration) -> Result<TaskManager, ServiceError> {
 	let (client, backend, keystore, task_manager, on_demand) =
 		sc_service::new_light_parts::<Block, RuntimeApi, Executor>(&config)?;
-	
+
 	let transaction_pool_api = Arc::new(sc_transaction_pool::LightChainApi::new(
 		client.clone(), on_demand.clone(),
 	));
@@ -243,7 +243,7 @@ pub fn new_light(config: Configuration) -> Result<TaskManager, ServiceError> {
 	let finality_proof_provider =
 		Arc::new(GrandpaFinalityProofProvider::new(backend.clone(), client.clone() as Arc<_>));
 
-	sc_service::build(sc_service::ServiceParams {	
+	sc_service::build(sc_service::ServiceParams {
 		block_announce_validator_builder: None,
 		finality_proof_request_builder: Some(finality_proof_request_builder),
 		finality_proof_provider: Some(finality_proof_provider),
