@@ -1,26 +1,129 @@
 // Tests to be written here
 
-use crate::{Error, mock::*};
+// use crate::{Error, mock::*};
+use crate::{*, Error, mock::*};
 use frame_support::{assert_ok, assert_noop};
 
 #[test]
-fn it_works_for_default_value() {
-	new_test_ext().execute_with(|| {
-		// Just a dummy test for the dummy function `do_something`
-		// calling the `do_something` function with a value 42
-		assert_ok!(TemplateModule::do_something(Origin::signed(1), 42));
-		// asserting that the stored value is equal to what we stored
-		assert_eq!(TemplateModule::something(), Some(42));
-	});
+fn correct_mutations() {
+    new_test_ext().execute_with(|| {
+        let zeros = H256::zero();
+
+        let subject = zeros;
+        let relation = [zeros].to_vec();
+        let v1 = "1".as_bytes().to_vec();
+        let v2 = "2".as_bytes().to_vec();
+
+        let md = Mutation {
+            changes: [
+                Change {
+                    primary: subject,
+                    relation: relation.clone(),
+                    before: None,
+                    after: Some(v1.clone())
+                }
+            ].to_vec()
+        };
+
+        assert_ok!(AnimoModule::modify(Origin::signed(1), md));
+        assert_eq!(AnimoModule::animo_store(subject, relation.clone()), Some(v1.clone()));
+
+        let md = Mutation {
+            changes: [
+                Change {
+                    primary: subject,
+                    relation: relation.clone(),
+                    before: Some(v1.clone()),
+                    after: Some(v2.clone())
+                }
+            ].to_vec()
+        };
+
+        assert_ok!(AnimoModule::modify(Origin::signed(1), md));
+        assert_eq!(AnimoModule::animo_store(subject, relation.clone()), Some(v2.clone()));
+
+        let md = Mutation {
+            changes: [
+                Change {
+                    primary: subject,
+                    relation: relation.clone(),
+                    before: Some(v2.clone()),
+                    after: None
+                }
+            ].to_vec()
+        };
+
+        assert_ok!(AnimoModule::modify(Origin::signed(1), md));
+        assert_eq!(AnimoModule::animo_store(subject, relation.clone()), None);
+    });
 }
 
 #[test]
-fn correct_error_for_none_value() {
+fn correct_errors() {
 	new_test_ext().execute_with(|| {
-		// Ensure the correct error is thrown on None value
+        let zeros = H256::zero();
+        let ones = H256::from([1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]);
+
+        let subject = zeros;
+        let relation = [zeros].to_vec();
+        let v1 = "1".as_bytes().to_vec();
+
+        let md = Mutation { changes: [].to_vec() };
 		assert_noop!(
-			TemplateModule::cause_error(Origin::signed(1)),
-			Error::<Test>::NoneValue
+			AnimoModule::modify(Origin::signed(1), md),
+			Error::<Test>::EmptyChanges
+		);
+
+        let md = Mutation { changes: [
+            Change {
+                primary: subject,
+                relation: [].to_vec(),
+                before: None,
+                after: Some(v1.clone())
+            }
+        ].to_vec() };
+        assert_noop!(
+			AnimoModule::modify(Origin::signed(1), md),
+			Error::<Test>::EmptyRelations
+		);
+
+        let md = Mutation { changes: [
+            Change {
+                primary: subject,
+                relation: relation.clone(),
+                before: None,
+                after: None
+            }
+        ].to_vec() };
+        assert_noop!(
+			AnimoModule::modify(Origin::signed(1), md),
+			Error::<Test>::BeforeAndAfterStatesAreEqual
+		);
+
+        let md = Mutation { changes: [
+            Change {
+                primary: subject,
+                relation: relation.clone(),
+                before: Some(v1.clone()),
+                after: None
+            }
+        ].to_vec() };
+        assert_noop!(
+			AnimoModule::modify(Origin::signed(1), md),
+			Error::<Test>::BeforeStateMismatch
+		);
+
+        let md = Mutation { changes: [
+            Change {
+                primary: subject,
+                relation: [ones, zeros].to_vec(),
+                before: Some(v1.clone()),
+                after: None
+            }
+        ].to_vec() };
+        assert_noop!(
+			AnimoModule::modify(Origin::signed(1), md),
+			Error::<Test>::RelationsIsNotOrdered
 		);
 	});
 }

@@ -33,7 +33,7 @@ pub trait Trait: system::Trait {
 /// Modification to be dispatched
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, Hash, Debug)]
-pub struct Modification {
+pub struct Mutation {
 	pub changes: Vec<Change>,
 }
 
@@ -47,16 +47,15 @@ pub struct Change {
 	pub relation: IDS,
 
 	/// value before modification
-	pub before: Value,
+	pub before: Option<Value>,
 
 	/// value after modification
-	pub after: Value,
+	pub after: Option<Value>,
 }
 
 pub type ID = H256;
 pub type IDS = Vec<ID>;
 pub type Value = Vec<u8>;
-
 
 // This pallet's storage items.
 decl_storage! {
@@ -68,18 +67,24 @@ decl_storage! {
 // The pallet's events
 decl_event!(
 	pub enum Event<T> where AccountId = <T as system::Trait>::AccountId {
-		/// Modification was applied
-		ModificationAccepted(Modification, AccountId),
+		/// Changes applied
+		MutationAccepted(Mutation, AccountId),
 	}
 );
 
 // The pallet's errors
 decl_error! {
 	pub enum Error for Module<T: Trait> {
-		/// Value was None
-		NoneValue,
-		/// Value reached maximum and cannot be incremented further
-		StorageOverflow,
+		/// no changes
+		EmptyChanges,
+		/// no relations
+		EmptyRelations,
+		/// relation vector is not ordered
+		RelationsIsNotOrdered,
+		/// change must have state mutation
+		BeforeAndAfterStatesAreEqual,
+		/// before state mismatch
+		BeforeStateMismatch
 	}
 }
 
@@ -98,17 +103,17 @@ decl_module! {
 
 		/// Dispatch a single modification
 		#[weight = 1_000_000]
-		pub fn modify(origin, modification: Modification) -> DispatchResult {
+		pub fn modify(origin, mutation: Mutation) -> DispatchResult {
 			// Check it was signed and get the signer.
 			let who = ensure_signed(origin)?;
 
-			let validity = Self::validate_modification(&modification)?;
+			let validity = Self::validate_mutation(&mutation)?;
 
 			// TODO check permissions
 
-			Self::update_storage(&modification, validity.priority)?;
+			Self::update_storage(&mutation, validity.priority)?;
 
-			Self::deposit_event(RawEvent::ModificationAccepted(modification, who));
+			Self::deposit_event(RawEvent::MutationAccepted(mutation, who));
 
 			Ok(())
 		}
@@ -118,11 +123,35 @@ decl_module! {
 // "Internal" function, callable by code
 impl<T: Trait> Module<T> {
 
-	pub fn validate_modification(modification: &Modification) -> Result<ValidTransaction, &'static str> {
-		for change in modification.changes.iter() {
-			ensure!(!change.relation.is_empty(), "no relation description");
-			ensure!(!change.before.is_empty(), "no before state");
-			ensure!(!change.after.is_empty(), "no after state");
+	pub fn validate_mutation(mutation: &Mutation) -> Result<ValidTransaction, Error::<T>> {
+		ensure!(!mutation.changes.is_empty(), Error::<T>::EmptyChanges);
+
+		for change in mutation.changes.iter() {
+			ensure!(!change.relation.is_empty(), Error::<T>::EmptyRelations);
+			// ensure!(!change.before.is_empty(), "no before state");
+			// ensure!(!change.after.is_empty(), "no after state");
+
+			ensure!(change.relation.windows(2).all(|w| w[0] <= w[1]), Error::<T>::RelationsIsNotOrdered);
+
+			ensure!(change.before != change.after, Error::<T>::BeforeAndAfterStatesAreEqual);
+
+			let current = <AnimoStore>::get(change.primary, change.relation.clone());
+			let error = match &current {
+				None => {
+					match &change.before {
+						None => false,
+						Some(_) => true
+					}
+				}
+				Some(current) => {
+					match &change.before {
+						None => true,
+						Some(before) => current != before
+					}
+				}
+			};
+			// println!("before state do not match {:?} vs {:?} [ {:?} ]", current, change.before, error);
+			ensure!(!error, Error::<T>::BeforeStateMismatch);
 		}
 
 		Ok(ValidTransaction {
@@ -134,12 +163,16 @@ impl<T: Trait> Module<T> {
 		})
 	}
 
-	fn update_storage(modification: &Modification, _reward: u64) -> DispatchResult {
-		for change in modification.changes.iter() {
-			let mut relation = change.relation.clone();
-			relation.sort();
-
-			<AnimoStore>::insert(change.primary, relation, change.after.clone());
+	fn update_storage(mutation: &Mutation, _reward: u64) -> DispatchResult {
+		for change in mutation.changes.iter() {
+			match &change.after {
+				Some(after) => {
+					<AnimoStore>::insert(change.primary, change.relation.clone(), after.clone());
+				}
+				None => {
+					<AnimoStore>::remove(change.primary, change.relation.clone());
+				}
+			}
 		}
 
 		Ok(())
