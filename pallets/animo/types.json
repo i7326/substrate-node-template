@@ -1,0 +1,15 @@
+{
+  "ID": "H256",
+  "Value": "Vec<u8>",
+
+  "Change": {
+    "primary": "ID",
+    "relation": "Vec<ID>",
+    "before": "Option<Value>",
+    "after": "Option<Value>"
+  },
+
+  "Mutation": {
+    "changes": "Vec<Change>"
+  }
+}

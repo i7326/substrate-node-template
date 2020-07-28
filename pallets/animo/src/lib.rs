@@ -44,7 +44,7 @@ pub struct Change {
 	pub primary: ID,
 
 	/// description of relation between primary object and value
-	pub relation: IDS,
+	pub relation: Vec<ID>,
 
 	/// value before modification
 	pub before: Option<Value>,
@@ -54,13 +54,14 @@ pub struct Change {
 }
 
 pub type ID = H256;
-pub type IDS = Vec<ID>;
+// avoid because of bug at typegen
+// pub type IDS = Vec<ID>;
 pub type Value = Vec<u8>;
 
 // This pallet's storage items.
 decl_storage! {
 	trait Store for Module<T: Trait> as AnimoModule {
-		AnimoStore get(fn animo_store): double_map hasher(blake2_128_concat) ID, hasher(blake2_128_concat) IDS => Option<Value>
+		AnimoStore get(fn animo_store): double_map hasher(blake2_128_concat) ID, hasher(blake2_128_concat) Vec<ID> => Option<Value>
 	}
 }
 
@@ -77,6 +78,8 @@ decl_error! {
 	pub enum Error for Module<T: Trait> {
 		/// no changes
 		EmptyChanges,
+		/// too many changes
+		TooManyChanges,
 		/// no relations
 		EmptyRelations,
 		/// relation vector is not ordered
@@ -125,6 +128,8 @@ impl<T: Trait> Module<T> {
 
 	pub fn validate_mutation(mutation: &Mutation) -> Result<ValidTransaction, Error::<T>> {
 		ensure!(!mutation.changes.is_empty(), Error::<T>::EmptyChanges);
+
+		ensure!(mutation.changes.len() < 256, Error::<T>::TooManyChanges);
 
 		for change in mutation.changes.iter() {
 			ensure!(!change.relation.is_empty(), Error::<T>::EmptyRelations);
