@@ -110,11 +110,11 @@ decl_module! {
 			// Check it was signed and get the signer.
 			let who = ensure_signed(origin)?;
 
-			let validity = Self::validate_mutation(&mutation)?;
+			Self::validate_mutation(&mutation)?;
 
 			// TODO check permissions
 
-			Self::update_storage(&mutation, validity.priority)?;
+			Self::update_storage(&mutation)?;
 
 			Self::deposit_event(RawEvent::MutationAccepted(mutation, who));
 
@@ -168,7 +168,7 @@ impl<T: Trait> Module<T> {
 		})
 	}
 
-	fn update_storage(mutation: &Mutation, _reward: u64) -> DispatchResult {
+	fn update_storage(mutation: &Mutation) -> DispatchResult {
 		for change in mutation.changes.iter() {
 			match &change.after {
 				Some(after) => {
