@@ -154,6 +154,20 @@ git = 'https://github.com/paritytech/substrate.git'
 package = 'pallet-transaction-payment'
 tag = 'v2.0.0-rc3'
 version = '2.0.0-rc3'
+
+[dependencies.uuid]
+default-features = false
+version = '0.8'
+features = ["v5"]
+
+[dependencies.exchangable-id]
+default-features = false
+path = '../pallets/exchangable-id'
+
+[dependencies.contact-tracing]
+default-features = false
+path = '../pallets/contact-tracing'
+
 [build-dependencies.wasm-builder-runner]
 git = 'https://github.com/paritytech/substrate.git'
 package = 'substrate-wasm-builder-runner'
@@ -199,4 +213,6 @@ std = [
     'timestamp/std',
     'transaction-payment/std',
     'template/std',
+    'exchangable-id/std',
+    'contact-tracing/std',
 ]
