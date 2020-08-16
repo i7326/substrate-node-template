@@ -1,0 +1,6 @@
+[submodule "pallets/contact-tracing"]
+	path = pallets/contact-tracing
+	url = https://github.com/HugoByte/contact-tracing.git
+[submodule "pallets/exchangable-id"]
+	path = pallets/exchangable-id
+	url = https://github.com/HugoByte/exchangable-id.git
