@@ -40,8 +40,6 @@ pub use frame_support::{
 	},
 };
 
-/// Importing a template pallet
-pub use template;
 pub use exchangable_id;
 pub use contact_tracing;
 /// An index to a block.
@@ -96,8 +94,8 @@ pub mod opaque {
 
 /// This runtime version.
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("node-template"),
-	impl_name: create_runtime_str!("node-template"),
+	spec_name: create_runtime_str!("contact-tracing-node"),
+	impl_name: create_runtime_str!("contact-tracing-node"),
 	authoring_version: 1,
 	spec_version: 1,
 	impl_version: 1,
@@ -253,11 +251,6 @@ impl sudo::Trait for Runtime {
 	type Call = Call;
 }
 
-/// Used for the module template in `./template.rs`
-impl template::Trait for Runtime {
-	type Event = Event;
-}
-
 impl exchangable_id::Trait for Runtime {
 	type Event = Event;
 	type Currency = Balances;
@@ -266,6 +259,7 @@ impl exchangable_id::Trait for Runtime {
 
 impl contact_tracing::Trait for Runtime {
 	type Event = Event;
+	type ExchangableIdProvider = exchangable_id::Module<Runtime>;
 }
 
 impl<C> system::offchain::SendTransactionTypes<C> for Runtime
@@ -290,8 +284,6 @@ construct_runtime!(
 		Balances: balances::{Module, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: transaction_payment::{Module, Storage},
 		Sudo: sudo::{Module, Call, Config<T>, Storage, Event<T>},
-		// Used for the module template in `./template.rs`
-		TemplateModule: template::{Module, Call, Storage, Event<T>},
 		ExchangableId: exchangable_id::{Module, Storage, Call, Event<T>},
 		ContactTracing: contact_tracing::{Module, Storage, Call, Event<T>},
 	}
