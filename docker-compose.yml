@@ -1,17 +1,23 @@
 version: "3.2"
-
+networks:
+  exchangableid:
+    name: exchangableid
 services:
   dev:
     container_name: contact-tracing-node
-    image: parity/rust-builder:latest
+    image: muhammedirfan/contact-tracing-node:latest
     working_dir: /var/www/contact-tracing-node
     ports:
       - "9944:9944"
-    environment:
-      - CARGO_HOME=/var/www/contact-tracing-node/.cargo
     volumes:
       - .:/var/www/contact-tracing-node
       - type: bind
         source: ./.local
         target: /root/.local
-    command: bash -c "cargo build --release && ./target/release/contact-tracing-node --dev --ws-external"
+    environment:
+      - CARGO_HOME=/var/www/contact-tracing-node/.cargo
+    networks:
+      exchangableid:
+        aliases:
+          - exchangableid
+    command: bash -c "./target/release/contact-tracing-node --dev --ws-external"
